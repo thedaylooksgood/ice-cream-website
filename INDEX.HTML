@@ -1,0 +1,851 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shubham's Gourmet 3D Ice Cream Studio</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Slab:wght@400;700&family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            background-color: #fdfcfe; /* Very light lavender/off-white */
+            color: #4a4a4a; /* Dark grey for text */
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #6B7280 0%, #4B5563 100%); /* Professional gray gradient */
+            padding: 1.25rem 0;
+            text-align: center;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+        }
+
+        header h1 {
+            font-family: 'Roboto Slab', serif;
+            font-size: 2.25rem; /* Slightly reduced for a more refined look */
+            color: #fff;
+            margin: 0;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.3);
+        }
+
+        main {
+            display: flex;
+            flex-grow: 1;
+            flex-direction: column; 
+            align-items: stretch; 
+            padding: 1.5rem; /* Increased padding */
+            gap: 1.5rem; 
+        }
+
+        #controls-panel {
+            background-color: #ffffff;
+            padding: 1.5rem 2rem; /* More padding inside controls */
+            border-radius: 16px; /* Softer radius */
+            box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+            display: flex;
+            flex-direction: column;
+            gap: 1.75rem; /* Increased gap */
+            max-width: 100%;
+            border: 1px solid #e2e8f0; /* Subtle border */
+        }
+        
+        @media (min-width: 1024px) { /* lg breakpoint for more space */
+            main {
+                flex-direction: row;
+            }
+            #controls-panel {
+                width: 380px; /* Wider controls panel */
+                min-width: 350px;
+                max-width: 420px;
+                flex-shrink: 0;
+            }
+            #canvas-container {
+                flex-grow: 1;
+            }
+        }
+
+        .control-group h2 {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.4rem; /* Slightly smaller heading for groups */
+            color: #1F2937; /* Darker blue-grey */
+            margin-top: 0;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid #9CA3AF; /* Muted accent color */
+            padding-bottom: 0.35rem;
+        }
+
+        .btn-custom {
+            font-family: 'Open Sans', sans-serif;
+            font-weight: 600;
+            color: white;
+            padding: 0.7rem 1.3rem; /* Slightly larger buttons */
+            border: none;
+            border-radius: 10px; /* Softer radius */
+            cursor: pointer;
+            transition: all 0.25s ease-in-out;
+            text-transform: capitalize; /* More professional casing */
+            letter-spacing: 0.2px;
+            box-shadow: 0 3px 6px rgba(0,0,0,0.1), inset 0 1px 0 rgba(255,255,255,0.1);
+            margin: 0.25rem;
+            flex-grow: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem; /* Space for potential icons */
+        }
+
+        .btn-custom:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 5px 10px rgba(0,0,0,0.15), inset 0 1px 0 rgba(255,255,255,0.1);
+        }
+        .btn-custom:active {
+            transform: translateY(0px) scale(0.98);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1), inset 0 1px 0 rgba(0,0,0,0.1);
+        }
+        
+        .btn-custom.active { /* Style for selected button */
+            box-shadow: inset 0 2px 4px rgba(0,0,0,0.2), 0 1px 2px rgba(0,0,0,0.05);
+            transform: translateY(1px);
+            filter: brightness(0.9);
+        }
+
+        .btn-cone { background-color: #A55233; } /* Richer brown for cones */
+        .btn-cone:hover { background-color: #8C462B; }
+        
+        .btn-flavor { /* Dynamic background, base style */
+            text-shadow: 1px 1px 1px rgba(0,0,0,0.2);
+        }
+        .btn-topping { background-color: #4A5568; } /* Cool gray for toppings */
+        .btn-topping:hover { background-color: #2D3748; }
+
+        .btn-action { background-color: #D9534F; } /* Softer red */
+        .btn-action:hover { background-color: #C9302C; }
+        
+        .btn-save { background-color: #5CB85C; } /* Green for save */
+        .btn-save:hover { background-color: #4CAE4C; }
+        
+        .btn-load { background-color: #5BC0DE; } /* Info blue for load */
+        .btn-load:hover { background-color: #46B8DA; }
+
+        .btn-share { background-color: #6c757d; } /* Muted share button */
+        .btn-share:hover { background-color: #5a6268; }
+
+        .btn-name { background-color: #6D28D9; } /* Deep purple */
+        .btn-name:hover { background-color: #5B21B6; }
+
+        .button-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); /* Wider min for buttons */
+            gap: 0.75rem; /* Increased gap */
+        }
+
+        #canvas-container {
+            flex-grow: 1;
+            min-height: 350px; /* Increased min height */
+            background-color: #eef2f7; /* Lighter, neutral canvas bg */
+            border-radius: 16px;
+            box-shadow: inset 0 0 15px rgba(0,0,0,0.07);
+            position: relative;
+            overflow: hidden;
+        }
+
+        #iceCreamCanvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        #iceCreamName {
+            font-family: 'Roboto Slab', serif;
+            font-size: 1.7rem;
+            color: #5B21B6; /* Deep Purple */
+            text-align: center;
+            margin-top: 1rem;
+            padding: 0.75rem;
+            background-color: #ede9fe; /* Light purple */
+            border-radius: 10px;
+            min-height: 45px;
+            line-height: 1.3;
+        }
+
+        footer {
+            background: #374151; /* Darker footer */
+            color: #D1D5DB; /* Lighter text for footer */
+            text-align: center;
+            padding: 1.25rem 0;
+            font-size: 0.9rem;
+        }
+        footer p { margin: 0; }
+
+        #message-box {
+            position: fixed;
+            bottom: 20px; /* Position at bottom */
+            left: 50%;
+            transform: translateX(-50%);
+            color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.25);
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.4s ease, bottom 0.4s ease;
+            font-size: 0.95rem;
+            font-weight: 600;
+            text-align: center;
+        }
+        #message-box.show {
+            opacity: 1;
+            bottom: 40px;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Shubham's Gourmet 3D Ice Cream Studio</h1>
+    </header>
+
+    <main>
+        <div id="controls-panel">
+            <div class="control-group">
+                <h2>1. Choose Your Base</h2>
+                <div id="cone-options" class="button-grid"></div>
+            </div>
+
+            <div class="control-group">
+                <h2>2. Select Flavors</h2>
+                <div id="flavor-options" class="button-grid"></div>
+            </div>
+
+            <div class="control-group">
+                <h2>3. Add Toppings</h2>
+                <div id="topping-options" class="button-grid"></div>
+            </div>
+            
+            <div class="control-group">
+                <h2>4. Finalize & Share</h2>
+                <div id="iceCreamName">Let's build something delicious!</div>
+                <button id="generateName" class="btn-custom btn-name mt-3 w-full">Name My Creation!</button>
+                 <div class="button-grid mt-3">
+                    <button id="saveCreation" class="btn-custom btn-save">Save Creation</button>
+                    <button id="loadCreation" class="btn-custom btn-load">Load Last Saved</button>
+                </div>
+                <button id="downloadImage" class="btn-custom btn-share mt-2 w-full">Download Image</button>
+            </div>
+
+            <div class="control-group">
+                <h2>Actions</h2>
+                 <div class="button-grid">
+                    <button id="resetIceCream" class="btn-custom btn-action">Start Over</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="canvas-container">
+            <canvas id="iceCreamCanvas"></canvas>
+        </div>
+    </main>
+
+    <footer>
+        <p>&copy; 2025 Gourmet Ice Creams Ltd. | Crafted with 🍦 by Shubham</p>
+    </footer>
+
+    <div id="message-box"></div>
+
+    <script>
+        // --- Three.js Setup ---
+        let scene, camera, renderer, controls;
+        let currentConeMesh = null;
+        const scoopMeshes = [];
+        const toppingMeshes = { sprinkles: [] }; // Store different topping types
+
+        const SCOOP_BASE_RADIUS = 0.45;
+        const SCOOP_HEIGHT_FACTOR = 0.6; 
+        const SPRINKLE_COUNT = 100;
+        const SPRINKLE_SIZE = { length: 0.08, radius: 0.008 };
+
+        // --- DOM Elements ---
+        const canvas = document.getElementById('iceCreamCanvas');
+        const canvasContainer = document.getElementById('canvas-container');
+        const coneOptionsContainer = document.getElementById('cone-options');
+        const flavorOptionsContainer = document.getElementById('flavor-options');
+        const toppingOptionsContainer = document.getElementById('topping-options');
+        const resetIceCreamButton = document.getElementById('resetIceCream');
+        const generateNameButton = document.getElementById('generateName');
+        const iceCreamNameDisplay = document.getElementById('iceCreamName');
+        const saveButton = document.getElementById('saveCreation');
+        const loadButton = document.getElementById('loadCreation');
+        const downloadImageButton = document.getElementById('downloadImage');
+        const messageBox = document.getElementById('message-box');
+
+        // --- Configuration ---
+        const CONES = [
+            { id: 'waffle', name: 'Waffle Cone', color: 0xbf845e, height: 2, radiusTop: 0.6, radiusBottom: 0.1, isCup: false },
+            { id: 'sugar', name: 'Sugar Cone', color: 0xd8a07a, height: 1.8, radiusTop: 0.5, radiusBottom: 0.05, isCup: false },
+            { id: 'cup_cake', name: 'Cake Cup', color: 0xfff8e7, height: 1, radiusTop: 0.7, radiusBottom: 0.5, isCup: true }
+        ];
+
+        const FLAVORS = [
+            { id: 'vanilla', name: 'Vanilla Bean', color: 0xf3e5ab },
+            { id: 'choc_milk', name: 'Milk Chocolate', color: 0x7b3f00 },
+            { id: 'choc_dark', name: 'Dark Chocolate', color: 0x5C2C06 },
+            { id: 'strawberry', name: 'Strawberry Bliss', color: 0xfc5a8d },
+            { id: 'mint', name: 'Mint Chocolate Chip', color: 0x98ff98, hasChips: true, chipColor: 0x3d251e },
+            { id: 'blueberry', name: 'Blueberry Swirl', color: 0x87cefa },
+            { id: 'mango', name: 'Mango Tango', color: 0xffc34d }
+        ];
+
+        const TOPPINGS = [
+            { id: 'sprinkles_choc', name: 'Choc Sprinkles', type: 'sprinkles', color: 0x4a2c2a, action: addChocolateSprinkles }
+            // Future: { id: 'cherry', name: 'Cherry on Top', type: 'single_object', model: createCherry, action: addCherry }
+        ];
+        
+        const NAME_PARTS = {
+            adjectives: ['Grand', 'Majestic', 'Silken', 'Velvet', 'Artisan', 'Gourmet', 'Decadent', 'Heavenly', 'Blissful', 'Royal'],
+            nouns: ['Indulgence', 'Creation', 'Masterpiece', 'Dream', 'Symphony', 'Delight', 'Peak', 'Summit', 'Fantasy', 'Escape'],
+            suffixes: ['Reserve', 'Signature', 'Gold', 'Prestige', 'Elite', ' Royale', 'Classic']
+        };
+
+        let currentIceCreamState = {
+            coneId: null,
+            scoops: [], // { flavorId: 'vanilla', toppings: [{toppingId: 'sprinkles_choc'}] }
+        };
+        
+        // --- Initialization ---
+        function init() {
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xeef2f7);
+
+            camera = new THREE.PerspectiveCamera(60, canvasContainer.clientWidth / canvasContainer.clientHeight, 0.1, 1000);
+            camera.position.set(0, 2.5, 6);
+            camera.lookAt(0, 1.2, 0);
+
+            renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, preserveDrawingBuffer: true }); // preserveDrawingBuffer for image download
+            renderer.setSize(canvasContainer.clientWidth, canvasContainer.clientHeight);
+            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+
+            const ambientLight = new THREE.AmbientLight(0xffffff, 0.9);
+            scene.add(ambientLight);
+
+            const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2);
+            directionalLight.position.set(8, 15, 10);
+            directionalLight.castShadow = true;
+            directionalLight.shadow.mapSize.width = 2048;
+            directionalLight.shadow.mapSize.height = 2048;
+            directionalLight.shadow.camera.near = 0.5;
+            directionalLight.shadow.camera.far = 50;
+            directionalLight.shadow.bias = -0.0005; // Helps with shadow acne
+            scene.add(directionalLight);
+            
+            // const dLightHelper = new THREE.DirectionalLightHelper(directionalLight, 5);
+            // scene.add(dLightHelper);
+            // const shadowCamHelper = new THREE.CameraHelper(directionalLight.shadow.camera);
+            // scene.add(shadowCamHelper);
+
+
+            const planeGeometry = new THREE.PlaneGeometry(30, 30);
+            const planeMaterial = new THREE.ShadowMaterial({ opacity: 0.25 });
+            const groundPlane = new THREE.Mesh(planeGeometry, planeMaterial);
+            groundPlane.rotation.x = -Math.PI / 2;
+            groundPlane.position.y = -0.02;
+            groundPlane.receiveShadow = true;
+            scene.add(groundPlane);
+
+            controls = new THREE.OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.04;
+            controls.minDistance = 3;
+            controls.maxDistance = 20;
+            controls.target.set(0, 1.2, 0);
+            controls.maxPolarAngle = Math.PI / 1.9;
+            controls.minPolarAngle = Math.PI / 4; // Prevent looking from too low or too high
+            controls.enablePan = false; // Simpler control for now
+
+            populateUI();
+
+            resetIceCreamButton.addEventListener('click', resetIceCream);
+            generateNameButton.addEventListener('click', generateAndDisplayIceCreamName);
+            saveButton.addEventListener('click', saveCurrentCreation);
+            loadButton.addEventListener('click', loadSavedCreation);
+            downloadImageButton.addEventListener('click', downloadCanvasAsImage);
+            window.addEventListener('resize', onWindowResize);
+
+            if (CONES.length > 0) {
+                selectCone(CONES[0].id);
+            }
+            
+            animate();
+            showMessage("Welcome to the Gourmet Ice Cream Studio!", "success");
+        }
+
+        function populateUI() {
+            CONES.forEach(coneData => {
+                const button = createButton(coneData.name, ['btn-custom', 'btn-cone'], () => selectCone(coneData.id));
+                button.dataset.coneId = coneData.id;
+                coneOptionsContainer.appendChild(button);
+            });
+
+            FLAVORS.forEach(flavorData => {
+                const button = createButton(flavorData.name, ['btn-custom', 'btn-flavor'], () => addScoop(flavorData.id));
+                button.style.backgroundColor = `#${flavorData.color.toString(16).padStart(6, '0')}`;
+                styleButtonTextForContrast(button, flavorData.color);
+                button.dataset.flavorId = flavorData.id;
+                flavorOptionsContainer.appendChild(button);
+            });
+
+            TOPPINGS.forEach(toppingData => {
+                const button = createButton(toppingData.name, ['btn-custom', 'btn-topping'], () => toppingData.action(toppingData));
+                button.dataset.toppingId = toppingData.id;
+                toppingOptionsContainer.appendChild(button);
+            });
+        }
+        
+        function createButton(text, classes, onClick) {
+            const button = document.createElement('button');
+            button.textContent = text;
+            button.classList.add(...classes);
+            button.addEventListener('click', onClick);
+            return button;
+        }
+
+        function styleButtonTextForContrast(button, backgroundColorHex) {
+            const r = (backgroundColorHex >> 16) & 0xff;
+            const g = (backgroundColorHex >> 8) & 0xff;
+            const b = backgroundColorHex & 0xff;
+            const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+            button.style.color = luminance > 0.5 ? '#333333' : '#ffffff';
+        }
+        
+        function updateActiveButton(container, activeIdAttribute, activeIdValue) {
+            container.querySelectorAll('button').forEach(btn => {
+                if (btn.dataset[activeIdAttribute] === activeIdValue) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+        }
+
+        // --- 3D Object Creation ---
+        function createConeMesh(coneData) {
+            let geometry;
+            if (coneData.isCup) {
+                geometry = new THREE.CylinderGeometry(coneData.radiusTop, coneData.radiusBottom, coneData.height, 32, 1, false);
+            } else {
+                geometry = new THREE.ConeGeometry(coneData.radiusTop, coneData.height, 32, 1, false);
+            }
+            const material = new THREE.MeshStandardMaterial({ 
+                color: coneData.color,
+                roughness: 0.85, 
+                metalness: 0.05,
+                map: createConeTexture(coneData.color) // Subtle texture
+            });
+            const cone = new THREE.Mesh(geometry, material);
+            cone.castShadow = true;
+            cone.receiveShadow = true;
+            cone.position.y = coneData.height / 2;
+            if (!coneData.isCup) {
+                 cone.rotation.x = Math.PI; 
+            }
+            cone.userData = { type: 'cone', id: coneData.id, ...coneData };
+            return cone;
+        }
+        
+        function createConeTexture(baseColor) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const context = canvas.getContext('2d');
+            
+            // Fill with base color
+            context.fillStyle = `#${new THREE.Color(baseColor).getHexString()}`;
+            context.fillRect(0, 0, 64, 64);
+            
+            // Add subtle noise for texture
+            for (let i = 0; i < 500; i++) {
+                const x = Math.random() * 64;
+                const y = Math.random() * 64;
+                const alpha = Math.random() * 0.1 + 0.05; // Very subtle
+                context.fillStyle = `rgba(0,0,0,${alpha})`;
+                context.fillRect(x, y, 1, 1);
+            }
+            
+            const texture = new THREE.CanvasTexture(canvas);
+            texture.wrapS = THREE.RepeatWrapping;
+            texture.wrapT = THREE.RepeatWrapping;
+            texture.repeat.set(2, 2); // How many times the texture repeats
+            return texture;
+        }
+
+        function createScoopMesh(flavorData) {
+            // More realistic scoop shape using LatheGeometry (like a soft-serve swirl)
+            const points = [];
+            const segments = 16;
+            for (let i = 0; i <= segments; i++) {
+                const theta = (i / segments) * Math.PI; // Half circle
+                const x = SCOOP_BASE_RADIUS * Math.sin(theta) * (1 - 0.2 * Math.sin(theta * 2 + Math.PI/2)); // Add some waviness
+                const y = SCOOP_BASE_RADIUS * Math.cos(theta);
+                points.push(new THREE.Vector2(x, y));
+            }
+            const geometry = new THREE.LatheGeometry(points, 24);
+            
+            // Add slight deformation for more organic look
+            const positionAttribute = geometry.attributes.position;
+            for (let i = 0; i < positionAttribute.count; i++) {
+                const y = positionAttribute.getY(i);
+                if (y > 0) { // Only deform top part
+                    const noiseFactor = 0.03 + (y / SCOOP_BASE_RADIUS) * 0.05; // More noise towards the top
+                    positionAttribute.setX(i, positionAttribute.getX(i) + (Math.random() - 0.5) * noiseFactor);
+                    positionAttribute.setZ(i, positionAttribute.getZ(i) + (Math.random() - 0.5) * noiseFactor);
+                }
+            }
+            geometry.computeVertexNormals(); // Important after deformation
+
+
+            const material = new THREE.MeshStandardMaterial({ 
+                color: flavorData.color,
+                roughness: 0.65, 
+                metalness: 0.1
+            });
+            const scoop = new THREE.Mesh(geometry, material);
+            scoop.castShadow = true;
+            scoop.receiveShadow = true;
+            scoop.userData = { type: 'scoop', id: flavorData.id, ...flavorData };
+
+            // If flavor has chips (e.g., Mint Chocolate Chip)
+            if (flavorData.hasChips && flavorData.chipColor) {
+                const chipCount = 20;
+                const chipGeometry = new THREE.BoxGeometry(0.05, 0.05, 0.05); // Tiny chips
+                const chipMaterial = new THREE.MeshStandardMaterial({ color: flavorData.chipColor, roughness: 0.5 });
+                for (let i = 0; i < chipCount; i++) {
+                    const chip = new THREE.Mesh(chipGeometry, chipMaterial);
+                    // Distribute chips on the surface of the scoop sphere (approx)
+                    const phi = Math.random() * Math.PI * 2;
+                    const theta = Math.acos((Math.random() * 2) - 1); // More even distribution over sphere
+                    const r = SCOOP_BASE_RADIUS * (0.8 + Math.random() * 0.2); // Slightly inside the surface
+
+                    chip.position.set(
+                        r * Math.sin(theta) * Math.cos(phi),
+                        r * Math.cos(theta),
+                        r * Math.sin(theta) * Math.sin(phi)
+                    );
+                    chip.rotation.set(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI);
+                    if (chip.position.y > -SCOOP_BASE_RADIUS * 0.3) { // Avoid chips on the very bottom
+                       scoop.add(chip); // Add chips as children of the scoop
+                    }
+                }
+            }
+            return scoop;
+        }
+        
+        function createSprinkleMesh(color) {
+            const geometry = new THREE.CylinderGeometry(SPRINKLE_SIZE.radius, SPRINKLE_SIZE.radius, SPRINKLE_SIZE.length, 8);
+            const material = new THREE.MeshStandardMaterial({ color: color, roughness: 0.7 });
+            const sprinkle = new THREE.Mesh(geometry, material);
+            sprinkle.castShadow = true;
+            return sprinkle;
+        }
+
+        // --- Ice Cream Logic ---
+        function selectCone(coneId) {
+            const coneData = CONES.find(c => c.id === coneId);
+            if (!coneData) return;
+
+            if (currentConeMesh) {
+                scene.remove(currentConeMesh);
+            }
+            resetScoops(); 
+            currentConeMesh = createConeMesh(coneData);
+            scene.add(currentConeMesh);
+            
+            currentIceCreamState.coneId = coneId;
+            currentIceCreamState.scoops = []; // Reset scoops in state too
+
+            controls.target.set(0, coneData.height / 1.5, 0); // Adjust target based on cone
+            updateActiveButton(coneOptionsContainer, 'coneId', coneId);
+            showMessage(`${coneData.name} selected!`, "info");
+        }
+
+        function addScoop(flavorId) {
+            const flavorData = FLAVORS.find(f => f.id === flavorId);
+            if (!currentConeMesh || !flavorData) {
+                showMessage("Please select a cone first!", "error");
+                return;
+            }
+            if (scoopMeshes.length >= 5) {
+                showMessage("Max 5 scoops! That's a tower!", "warning");
+                return;
+            }
+
+            const newScoopMesh = createScoopMesh(flavorData);
+            const coneProps = currentConeMesh.userData;
+            
+            let baseScoopY;
+            if (coneProps.isCup) {
+                baseScoopY = coneProps.height; // Top of the cup
+            } else {
+                baseScoopY = coneProps.height; // Top of the cone (world Y, since cone mesh is positioned at its center)
+            }
+
+            if (scoopMeshes.length === 0) {
+                newScoopMesh.position.y = baseScoopY + SCOOP_BASE_RADIUS * 0.3; // First scoop sits slightly into cone/cup
+            } else {
+                const previousScoop = scoopMeshes[scoopMeshes.length - 1];
+                newScoopMesh.position.y = previousScoop.position.y + SCOOP_BASE_RADIUS * SCOOP_HEIGHT_FACTOR;
+            }
+            
+            newScoopMesh.position.x = (Math.random() - 0.5) * 0.05; // Tiny offset
+            newScoopMesh.position.z = (Math.random() - 0.5) * 0.05;
+            newScoopMesh.rotation.y = Math.random() * Math.PI * 2; // Random rotation
+
+            scoopMeshes.push(newScoopMesh);
+            scene.add(newScoopMesh);
+            
+            currentIceCreamState.scoops.push({ flavorId: flavorId, toppings: [] });
+
+            controls.target.y = newScoopMesh.position.y;
+            showMessage(`${flavorData.name} scoop added!`, "success");
+        }
+        
+        function addChocolateSprinkles(toppingData) {
+            if (scoopMeshes.length === 0) {
+                showMessage("Add a scoop before adding sprinkles!", "warning");
+                return;
+            }
+            // Clear existing sprinkles of this type
+            toppingMeshes.sprinkles.forEach(s => scene.remove(s));
+            toppingMeshes.sprinkles = [];
+
+            const topScoop = scoopMeshes[scoopMeshes.length - 1];
+            const topScoopY = topScoop.position.y;
+            const topScoopRadius = SCOOP_BASE_RADIUS; // Approximate radius of the top surface
+
+            for (let i = 0; i < SPRINKLE_COUNT; i++) {
+                const sprinkle = createSprinkleMesh(toppingData.color);
+                
+                // Distribute on the upper hemisphere of the top scoop
+                const phi = Math.random() * Math.PI * 2; // Angle around Y axis
+                const theta = Math.random() * Math.PI / 2.5; // Angle from Y axis (0 to 72 deg, mostly on top)
+                
+                const x = topScoopRadius * Math.sin(theta) * Math.cos(phi);
+                const y = topScoopRadius * Math.cos(theta); // Relative to scoop center
+                const z = topScoopRadius * Math.sin(theta) * Math.sin(phi);
+
+                sprinkle.position.set(
+                    topScoop.position.x + x,
+                    topScoopY + y + SPRINKLE_SIZE.length / 2, // Adjust so it sits on surface
+                    topScoop.position.z + z
+                );
+
+                // Orient sprinkle somewhat along the surface normal (approximate)
+                sprinkle.lookAt(new THREE.Vector3(sprinkle.position.x + x, sprinkle.position.y + y, sprinkle.position.z + z));
+                sprinkle.rotateX(Math.PI / 2); // Align cylinder length along the direction
+                sprinkle.rotateY(Math.random() * Math.PI); // Random spin
+
+                scene.add(sprinkle);
+                toppingMeshes.sprinkles.push(sprinkle);
+            }
+            
+            // Update state
+            const currentScoopState = currentIceCreamState.scoops[currentIceCreamState.scoops.length - 1];
+            if (!currentScoopState.toppings.find(t => t.toppingId === toppingData.id)) {
+                currentScoopState.toppings.push({ toppingId: toppingData.id });
+            }
+            showMessage(`${toppingData.name} added!`, "success");
+        }
+
+        function clearAllToppings() {
+            Object.values(toppingMeshes).forEach(meshArray => {
+                meshArray.forEach(mesh => scene.remove(mesh));
+                meshArray.length = 0;
+            });
+            if (currentIceCreamState.scoops.length > 0) {
+                 currentIceCreamState.scoops.forEach(s => s.toppings = []);
+            }
+        }
+        
+        function resetScoops() {
+            scoopMeshes.forEach(scoop => scene.remove(scoop));
+            scoopMeshes.length = 0;
+            clearAllToppings();
+            currentIceCreamState.scoops = [];
+        }
+
+        function resetIceCream() {
+            resetScoops();
+            if (CONES.length > 0) {
+                selectCone(CONES[0].id);
+            } else if (currentConeMesh) {
+                scene.remove(currentConeMesh);
+                currentConeMesh = null;
+                currentIceCreamState.coneId = null;
+            }
+            iceCreamNameDisplay.textContent = "Let's build something delicious!";
+            iceCreamNameDisplay.style.color = "#5B21B6";
+            updateActiveButton(coneOptionsContainer, 'coneId', CONES.length > 0 ? CONES[0].id : null);
+            showMessage("Studio reset. Let's create anew!", "info");
+        }
+
+        // --- Name Generation ---
+        function generateIceCreamName() {
+            const adj = NAME_PARTS.adjectives[Math.floor(Math.random() * NAME_PARTS.adjectives.length)];
+            let noun = NAME_PARTS.nouns[Math.floor(Math.random() * NAME_PARTS.nouns.length)];
+            
+            let primaryFlavorName = "Mystery";
+            if (currentIceCreamState.scoops.length > 0) {
+                const firstScoopFlavorId = currentIceCreamState.scoops[0].flavorId;
+                primaryFlavorName = FLAVORS.find(f => f.id === firstScoopFlavorId)?.name.split(" ")[0] || primaryFlavorName; // Use first word of flavor
+            } else if (currentIceCreamState.coneId) {
+                 primaryFlavorName = CONES.find(c => c.id === currentIceCreamState.coneId)?.name.split(" ")[0] || "Cone";
+            }
+
+
+            let name = `${adj} ${primaryFlavorName} ${noun}`;
+
+            if (Math.random() > 0.6 && currentIceCreamState.scoops.length > 1) {
+                 const suffix = NAME_PARTS.suffixes[Math.floor(Math.random() * NAME_PARTS.suffixes.length)];
+                 name += ` ${suffix}`;
+            }
+            return name;
+        }
+
+        function generateAndDisplayIceCreamName() {
+            if (currentIceCreamState.scoops.length === 0 && !currentIceCreamState.coneId) {
+                showMessage("Please create an ice cream first!", "warning");
+                iceCreamNameDisplay.textContent = "Build your vision!";
+                return;
+            }
+            const name = generateIceCreamName();
+            iceCreamNameDisplay.textContent = name;
+            // Generate a random color for the name text based on a pleasant palette
+            const nameColors = ["#D946EF", "#8B5CF6", "#EC4899", "#F59E0B", "#10B981"];
+            iceCreamNameDisplay.style.color = nameColors[Math.floor(Math.random() * nameColors.length)];
+            showMessage(`Your creation is named: ${name}!`, "success");
+        }
+        
+        // --- Save & Load ---
+        function saveCurrentCreation() {
+            if (!currentIceCreamState.coneId) {
+                showMessage("Nothing to save yet!", "warning");
+                return;
+            }
+            try {
+                localStorage.setItem('shubhamIceCreamBuilder_savedCreation', JSON.stringify(currentIceCreamState));
+                showMessage("Creation saved successfully!", "success");
+            } catch (e) {
+                showMessage("Could not save creation. Storage might be full.", "error");
+                console.error("Save failed:", e);
+            }
+        }
+
+        function loadSavedCreation() {
+            try {
+                const savedStateJSON = localStorage.getItem('shubhamIceCreamBuilder_savedCreation');
+                if (savedStateJSON) {
+                    const savedState = JSON.parse(savedStateJSON);
+                    rebuildIceCreamFromState(savedState);
+                    showMessage("Saved creation loaded!", "success");
+                } else {
+                    showMessage("No saved creation found.", "info");
+                }
+            } catch (e) {
+                showMessage("Could not load creation. Data might be corrupted.", "error");
+                console.error("Load failed:", e);
+            }
+        }
+
+        function rebuildIceCreamFromState(state) {
+            resetIceCream(); // Start fresh visually
+
+            if (state.coneId) {
+                selectCone(state.coneId); // This also sets currentIceCreamState.coneId
+            }
+
+            state.scoops.forEach(scoopState => {
+                addScoop(scoopState.flavorId); // This adds to scoopMeshes and currentIceCreamState.scoops
+                // Apply toppings for this scoop if any
+                if (scoopState.toppings && scoopState.toppings.length > 0 && scoopMeshes.length > 0) {
+                    scoopState.toppings.forEach(toppingState => {
+                        const toppingConfig = TOPPINGS.find(t => t.id === toppingState.toppingId);
+                        if (toppingConfig && typeof toppingConfig.action === 'function') {
+                            // Ensure the action applies to the *current* last scoop
+                            toppingConfig.action(toppingConfig); 
+                        }
+                    });
+                }
+            });
+            // After rebuilding, currentIceCreamState should match the loaded state.
+            // For safety, explicitly set it:
+            currentIceCreamState = JSON.parse(JSON.stringify(state)); 
+        }
+
+        // --- Share (Download Image) ---
+        function downloadCanvasAsImage() {
+            if (!currentConeMesh) {
+                showMessage("Create an ice cream before downloading!", "warning");
+                return;
+            }
+            try {
+                renderer.render(scene, camera); // Ensure latest frame is rendered
+                const dataURL = renderer.domElement.toDataURL('image/png');
+                const link = document.createElement('a');
+                link.download = `${(iceCreamNameDisplay.textContent.replace(/[^a-zA-Z0-9]/g, '_') || 'My_Ice_Cream')}.png`;
+                link.href = dataURL;
+                link.click();
+                showMessage("Image download started!", "success");
+            } catch (e) {
+                showMessage("Could not download image.", "error");
+                console.error("Download image failed:", e);
+            }
+        }
+
+        // --- Animation Loop & Resize ---
+        function animate() {
+            requestAnimationFrame(animate);
+            controls.update(); 
+            renderer.render(scene, camera);
+        }
+
+        function onWindowResize() {
+            const newWidth = canvasContainer.clientWidth;
+            const newHeight = canvasContainer.clientHeight;
+
+            camera.aspect = newWidth / newHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(newWidth, newHeight);
+        }
+
+        // --- Utility: Message Box ---
+        let messageTimeout;
+        function showMessage(message, type = "info") {
+            messageBox.textContent = message;
+            messageBox.classList.add('show');
+
+            const colors = {
+                success: "#34D399", // Emerald
+                error: "#F87171",   // Red
+                warning: "#FBBF24", // Amber
+                info: "#60A5FA"     // Blue
+            };
+            messageBox.style.backgroundColor = colors[type] || colors.info;
+
+            clearTimeout(messageTimeout);
+            messageTimeout = setTimeout(() => {
+                messageBox.classList.remove('show');
+            }, 3500);
+        }
+
+        // --- Start ---
+        init();
+    </script>
+</body>
+</html>
